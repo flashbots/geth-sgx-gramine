@@ -1,0 +1,5 @@
+Geth-in-SGX itself is licensed under the LGPL-3.0-or-later.
+
+Geth-in-SGX also includes the following third party sources (and licenses):
+
+gramine-compatibility/0002-goleveldb.patch - BSD-2-Clause license 

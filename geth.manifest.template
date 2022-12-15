@@ -1,0 +1,114 @@
+# Geth manifest
+
+################################## GRAMINE ####################################
+
+# PAL entrypoint (points to the LibOS layer library of Gramine). There is
+# currently only one implementation, so it is always set to libsysdb.so.
+loader.entrypoint = "file:{{ gramine.libos }}"
+
+# Entrypoint binary which Gramine invokes.
+libos.entrypoint = "{{ entrypoint }}"
+
+# Verbosity of Gramine debug log (none/error/warning/debug/trace/all). Note
+# that GRAMINE_LOG_LEVEL macro is expanded in the Makefile as part of the
+# building process: the default is "error" for non-debug builds, and "debug"
+# for debug builds.
+loader.log_level = "{{ log_level }}"
+
+################################# ENV VARS ####################################
+
+# Specify paths to search for libraries. The usual LD_LIBRARY_PATH syntax
+# applies. Paths must be in-Gramine visible paths, not host paths (i.e.,
+# paths must be taken from fs.mounts[...].path, not fs.mounts[...].uri).
+loader.env.LD_LIBRARY_PATH = "/lib:{{ arch_libdir }}:/usr/lib:/usr/{{ arch_libdir }}"
+loader.env.GETH_BIN = "{{ geth_bin }}"
+
+loader.env.GODEBUG = { passthrough = true }
+loader.env.GOGC = { passthrough = true }
+loader.env.COPY_DATABASE = { passthrough = true }
+loader.env.FAKE_PROPOSER = { passthrough = true }
+
+loader.insecure__use_cmdline_argv = true
+
+################################## SIGNALS ####################################
+
+# Allow for injecting SIGTERM signal from the host. Without this option,
+# pressing `Ctrl + C` wouldn't terminate Geth.
+sys.enable_sigterm_injection = true
+
+################################# MOUNT FS ####################################
+
+# General notes:
+# - All mount points are mounted using the default 'chroot' type.
+# - `path`: names of directories and files in Gramine environment; they may be
+#           arbitrary but here we mostly reuse host URIs for simplicity (except
+#           for the first `/lib` mount point).
+# - `uri`:  names of directories and files on the host, somewhat confusingly
+#           prepended by the 'file:' keyword.
+
+fs.mounts = [
+  # Mount on-host directory to Gramine glibc/runtime libraries (in 'uri') into
+  # in-Gramine visible directory /lib (in 'path').
+  { path = "/lib", uri = "file:{{ gramine.runtimedir() }}" },
+
+  { path = "{{ arch_libdir }}", uri = "file:{{ arch_libdir }}" },
+  { path = "/usr", uri = "file:/usr" },
+  { path = "/etc", uri = "file:/etc" },
+  { type = "tmpfs", path = "/root/.ethereum" },
+  { path = "/root/.ethereum.synced", uri = "file:/root/.ethereum.synced" },
+  { type = "tmpfs", path = "/tmp" },
+]
+
+############################### SGX: GENERAL ##################################
+
+sys.stack.size = "2M"
+sys.enable_extra_runtime_domain_names_conf = true
+
+loader.pal_internal_mem_size = "256M"
+sgx.nonpie_binary = true
+sgx.enclave_size = "{{ enclave_size }}"
+sgx.thread_num = 128
+
+sgx.remote_attestation = "{{ ra_type }}"
+sgx.ra_client_spid = "{{ ra_client_spid }}"
+sgx.ra_client_linkable = {{ 'true' if ra_client_linkable == '1' else 'false' }}
+
+############################# SGX: TRUSTED FILES ###############################
+
+# Specify all files used by Geth and its dependencies (including all libraries
+# which can be loaded at runtime via dlopen), as well as other static read-only
+# files (like configuration files).
+#
+# The paths to files are on-host paths. These files will be searched for in
+# in-Gramine visible paths according to mount points above.
+#
+# As part of the build process, Gramine-SGX script (`gramine-sgx-sign`) finds
+# each specified file, measures its hash, and adds it to the manifest entry for
+# that file (converting each entry to a table with "uri" and "sha256" keys).
+# Note that this happens on the developer machine or a build server. If a
+# directory is specified in the list below, then this directory is recursively
+# traversed and each found file is processed as described above.
+#
+# At runtime, during loading of each "trusted file", Gramine-SGX measures its
+# hash and compares with the "sha256" value in the corresponding manifest entry.
+# If hashes match, this file is trusted and allowed to be loaded and used. Note
+# that this happens on the deployment machine.
+
+sgx.trusted_files = [
+  "file:{{ gramine.libos }}",
+  "file:{{ entrypoint }}",
+  "file:{{ geth_bin }}",
+  "file:{{ gramine.runtimedir() }}/",
+  "file:{{ arch_libdir }}/",
+  "file:/usr/{{ arch_libdir }}/",
+  "file:/etc/ssl/certs/ca-certificates.crt",
+]
+
+sgx.allowed_files = [
+  "file:/etc/nsswitch.conf",
+  "file:/etc/localtime",
+  "file:/etc/hosts",
+  "file:/etc/passwd",
+  "file:/etc/jwt.hex",
+  "file:/root/.ethereum.synced",
+]
