@@ -2,6 +2,11 @@
 
 This repository contains an example for running Geth in [Gramine](https://gramine.readthedocs.io/en/stable/), a libOS for SGX enclaves. It includes the Makefile, a template for generating the manifest and a small patch-set to make go-ethereum run in Gramine. A design decision was taken to store the complete geth database in memory via `tmpfs`. This decision was made for performance reasons but also to obfuscate IO access. Therefor the memory requirements of Geth-in-SGX are significant. It also means the database state does not persist after the application exits.
 
+For more background and details, see also:
+
+* https://writings.flashbots.net/geth-inside-sgx
+* https://collective.flashbots.net/t/running-geth-within-sgx-our-experience-learnings-and-code-flashbots/938
+
 # Prerequisites
 
 **OS:** Ubuntu 20.04, Linux Kernel >= 5.11
