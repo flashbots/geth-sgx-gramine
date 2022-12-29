@@ -1,0 +1,44 @@
+{
+    "Packages": {
+        "geth-package": {
+            "SignerID": null,
+            "ProductID": 13,
+            "SecurityVersion": 1
+        }
+    },
+    "Marbles": {
+        "geth": {
+            "Package": "geth-package",
+            "Parameters": {
+                "Argv": [
+		    "./geth_init",
+                    "--http",
+                    "--http.api=eth,net,engine,web3,personal",
+                    "--authrpc.jwtsecret=/etc/jwt.hex",
+                    "--tls",
+                    "--tlscert=tlscert.pem",
+                    "--tlskey=tlskey.pem",
+                    "--builder",
+                    "--builder.local_relay",
+                    "--builder.beacon_endpoint=http://127.0.0.1:3500",
+                    "--builder.bellatrix_fork_version=0x02001020",
+                    "--builder.genesis_fork_version=0x00001020",
+                    "--builder.genesis_validators_root=0x043db0d9a83813551ee2f33450d23797757d430911a9320530ad8a0eabc43efb",
+                    "--goerli"
+                ],
+		"Files": {
+                    "/dev/attestation/protected_files_key": "{{ hex .Secrets.ProtectedFilesKey }}",
+                    "tlscert.pem": "{{ pem .MarbleRun.MarbleCert.Cert }}",
+                    "tlskey.pem": "{{ pem .MarbleRun.MarbleCert.Private }}",
+                    "ca.crt": "{{ pem .MarbleRun.RootCA.Cert }}"
+                }
+            }
+        }
+    },
+    "Secrets": {
+        "ProtectedFilesKey": {
+            "Type": "symmetric-key",
+            "Size": 128
+        }
+    }
+}

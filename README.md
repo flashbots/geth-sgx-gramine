@@ -22,6 +22,24 @@ Follow the [Gramine Quickstart](https://gramine.readthedocs.io/en/stable/quickst
 sudo apt-get install -y libssl-dev gnupg software-properties-common build-essential ca-certificates git
 ```
 
+## Prerequisits Marblerun
+
+```
+# add edglesssys RT dependency
+wget -qO- https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key | sudo apt-key add
+sudo add-apt-repository "deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu `lsb_release -cs` main"
+wget https://github.com/edgelesssys/edgelessrt/releases/download/v0.3.6/edgelessrt_0.3.6_amd64.deb
+sudo apt install ./edgelessrt_0.3.6_amd64.deb build-essential libssl-dev libsgx-dcap-ql-dev
+sudo snap install cmake ego-dev --classic
+```
+
+## Prerequisits Azure Cloud Attestation
+```
+sudo apt-add-repository 'https://packages.microsoft.com/ubuntu/20.04/prod main' && sudo apt-key adv --fetch-keys 'https://packages.microsoft.com/keys/microsoft.asc'
+sudo apt-get update && sudo apt-get install -y     az-dcap-client
+```
+
+
 # Generating the manifest
 
 ## Building for Linux

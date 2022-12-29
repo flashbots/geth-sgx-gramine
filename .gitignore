@@ -4,5 +4,8 @@ geth.manifest.sgx
 geth.sig
 geth.token
 geth_init
+premain-libos
 go-ethereum/
 goleveldb/
+marblerun/
+marblerun-manifest*.json

@@ -19,12 +19,15 @@ ARCH_LIBDIR ?= /lib/$(shell $(CC) -dumpmachine)
 
 ENCLAVE_SIZE ?= 1024G
 
+GETH_SRCDIR = go-ethereum
 GETH_BRANCH ?= master
 GETH_REPO ?= https://github.com/flashbots/mev-geth
 
+MARBLERUN_SRCDIR = marblerun
+MARBLERUN_REPO = https://github.com/edgelesssys/marblerun.git
+
 GPP = g++ -std=c++17
 GORUN = env GO111MODULE=on go run
-SRCDIR = go-ethereum
 
 GOMODCACHE = $(shell go env GOMODCACHE)
 PATCHED_GOLEVELDB = goleveldb
@@ -36,31 +39,45 @@ GRAMINE_LOG_LEVEL = error
 endif
 
 .PHONY: all
-all: geth geth.manifest
+all: geth premain-libos geth.manifest marblerun-manifest.goerli.json
 ifeq ($(SGX),1)
-all: geth_init geth.manifest.sgx geth.sig geth.token
+all: geth_init premain-libos geth.manifest.sgx geth.sig geth.token marblerun-manifest.goerli.json
 endif
+ifeq (, $(shell which jq))
+        $(error "No 'jq' binary found. Please install 'jq'.")
+endif
+
+########################## MARBLERUN PREMAIN ##################################
+
+$(MARBLERUN_SRCDIR)/Makefile:
+	git clone $(MARBLERUN_REPO) $(MARBLERUN_SRCDIR)
+
+$(MARBLERUN_SRCDIR)/premain-libos: $(MARBLERUN_SRCDIR)/Makefile
+	cd $(MARBLERUN_SRCDIR) && \
+		. /opt/edgelessrt/share/openenclave/openenclaverc && \
+		cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo . && \
+		make premain-libos
 
 ############################## GETH EXECUTABLE ###############################
 
 # Clone Geth, fetch dependencies and patch Geth 
-$(SRCDIR)/Makefile:
-	git clone -b $(GETH_BRANCH) $(GETH_REPO) $(SRCDIR)
-	cd $(SRCDIR) && \
+$(GETH_SRCDIR)/Makefile:
+	git clone -b $(GETH_BRANCH) $(GETH_REPO) $(GETH_SRCDIR)
+	cd $(GETH_SRCDIR) && \
 		go mod download && \
 		patch -p1 < ../gramine-compatibility/0001-go-ethereum.patch
 
 # Create a local copy of goleveldb mod and patch it
-$(PATCHED_GOLEVELDB): GOLEVELDB_SRCDIR=$(shell cat $(SRCDIR)/go.mod | awk -v pattern="goleveldb" '$$1 ~ pattern { print $$1 "@" $$2}')
-$(PATCHED_GOLEVELDB): $(SRCDIR)/Makefile
+$(PATCHED_GOLEVELDB): GOLEVELDB_SRCDIR=$(shell cat $(GETH_SRCDIR)/go.mod | awk -v pattern="goleveldb" '$$1 ~ pattern { print $$1 "@" $$2}')
+$(PATCHED_GOLEVELDB): $(GETH_SRCDIR)/Makefile
 	cp -r --no-preserve=mode $(GOMODCACHE)/$(GOLEVELDB_SRCDIR) .
 	mv $(PATCHED_GOLEVELDB)* $(PATCHED_GOLEVELDB)
 	cd $(PATCHED_GOLEVELDB) && \
                 patch -p1 < ../gramine-compatibility/0002-goleveldb.patch
 
 # Build Geth
-$(SRCDIR)/build/bin/geth: $(PATCHED_GOLEVELDB)
-	cd $(SRCDIR) && \
+$(GETH_SRCDIR)/build/bin/geth: $(PATCHED_GOLEVELDB)
+	cd $(GETH_SRCDIR) && \
 		$(GORUN) build/ci.go install -static ./cmd/geth
 
 ################################## GETH INIT #################################
@@ -75,9 +92,9 @@ geth_init: geth_init.cpp
 # geth.manifest (to be run under non-SGX Gramine) by replacing variables
 # in the template file using the "gramine-manifest" script.
 
-RA_TYPE ?= none
-RA_CLIENT_SPID ?=
 RA_CLIENT_LINKABLE ?= 0
+ISVPRODID          ?= 13
+ISVSVN             ?= 1
 
 geth.manifest: geth.manifest.template
 	gramine-manifest \
@@ -85,9 +102,9 @@ geth.manifest: geth.manifest.template
 		-Darch_libdir=$(ARCH_LIBDIR) \
 		-Dentrypoint="./geth_init" \
 		-Dgeth_bin="./geth" \
-		-Dra_type=$(RA_TYPE) \
-		-Dra_client_spid=$(RA_CLIENT_SPID) \
 		-Dra_client_linkable=$(RA_CLIENT_LINKABLE) \
+		-Disvprodid=$(ISVPRODID) \
+		-Disvsvn=$(ISVSVN) \
 		-Denclave_size=$(ENCLAVE_SIZE) \
 		$< >$@
 
@@ -115,12 +132,21 @@ sgx_sign: geth.manifest
 geth.token: geth.sig
 	gramine-sgx-get-token --output $@ --sig $<
 
+############################ MARBLERUN MANIFEST ###############################
+
+marblerun-manifest.goerli.json: MR_SIGNER=$(shell gramine-sgx-get-token -s geth.sig -o /dev/null | awk -v pattern="mr_signer" '$$1 ~ pattern { print $$2 }')
+marblerun-manifest.goerli.json: geth.sig
+	jq ".Packages.\"geth-package\".SignerID = \"$(MR_SIGNER)\"" marblerun-manifest.goerli.json.template > marblerun-manifest.goerli.json
+
 ########################### COPIES OF EXECUTABLES #############################
 
 # Geth build process creates the final executable as build/bin/geth. For
 # simplicity, copy it into our root directory.
 
-geth: $(SRCDIR)/build/bin/geth geth_init
+geth: $(GETH_SRCDIR)/build/bin/geth geth_init
+	cp $< $@
+
+premain-libos: $(MARBLERUN_SRCDIR)/premain-libos
 	cp $< $@
 
 ############################## RUNNING TESTS ##################################
@@ -144,4 +170,4 @@ clean:
 
 .PHONY: distclean
 distclean: clean
-	$(RM) -rf $(SRCDIR) $(PATCHED_GOLEVELDB) geth geth_init
+	$(RM) -rf $(GETH_SRCDIR) $(MARBLERUN_SRCDIR) $(PATCHED_GOLEVELDB) geth geth_init

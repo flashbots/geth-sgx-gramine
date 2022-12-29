@@ -6,8 +6,8 @@
 # currently only one implementation, so it is always set to libsysdb.so.
 loader.entrypoint = "file:{{ gramine.libos }}"
 
-# Entrypoint binary which Gramine invokes.
-libos.entrypoint = "{{ entrypoint }}"
+# MARBLERUN: entrypoint must be premain-libos
+libos.entrypoint = "premain-libos"
 
 # Verbosity of Gramine debug log (none/error/warning/debug/trace/all). Note
 # that GRAMINE_LOG_LEVEL macro is expanded in the Makefile as part of the
@@ -15,20 +15,31 @@ libos.entrypoint = "{{ entrypoint }}"
 # for debug builds.
 loader.log_level = "{{ log_level }}"
 
+################################# ARGUMENTS ###################################
+
+# MARBLERUN: argv0 must be the path to the actual application
+loader.argv0_override = "{{ entrypoint }}"
+
 ################################# ENV VARS ####################################
 
 # Specify paths to search for libraries. The usual LD_LIBRARY_PATH syntax
 # applies. Paths must be in-Gramine visible paths, not host paths (i.e.,
 # paths must be taken from fs.mounts[...].path, not fs.mounts[...].uri).
 loader.env.LD_LIBRARY_PATH = "/lib:{{ arch_libdir }}:/usr/lib:/usr/{{ arch_libdir }}"
+
+# MARBLERUN: Forward EDG environment variables, used by MarbleRun
+loader.env.EDG_MARBLE_TYPE = { passthrough = true }
+loader.env.EDG_MARBLE_COORDINATOR_ADDR = { passthrough = true }
+loader.env.EDG_MARBLE_UUID_FILE = { passthrough = true }
+loader.env.EDG_MARBLE_DNS_NAMES = { passthrough = true }
+
+# GETH
 loader.env.GETH_BIN = "{{ geth_bin }}"
 
 loader.env.GODEBUG = { passthrough = true }
 loader.env.GOGC = { passthrough = true }
 loader.env.COPY_DATABASE = { passthrough = true }
 loader.env.FAKE_PROPOSER = { passthrough = true }
-
-loader.insecure__use_cmdline_argv = true
 
 ################################## SIGNALS ####################################
 
@@ -51,9 +62,16 @@ fs.mounts = [
   # in-Gramine visible directory /lib (in 'path').
   { path = "/lib", uri = "file:{{ gramine.runtimedir() }}" },
 
+  # Mount host-OS directory to Name Service Switch (NSS) libraries (in 'uri')
+  # into in-Gramine visible directory /lib/x86_64-linux-gnu (in 'path').
   { path = "{{ arch_libdir }}", uri = "file:{{ arch_libdir }}" },
-  { path = "/usr", uri = "file:/usr" },
+  { path = "/usr/{{ arch_libdir }}", uri = "file:/usr/{{ arch_libdir }}" },
+
+  # Mount host-OS directory to NSS files required by Glibc + NSS libs (in 'uri')
+  # into in-Gramine visible directory /etc (in 'path').
   { path = "/etc", uri = "file:/etc" },
+
+  # Geth related mounts
   { type = "tmpfs", path = "/root/.ethereum" },
   { path = "/root/.ethereum.synced", uri = "file:/root/.ethereum.synced" },
   { type = "tmpfs", path = "/tmp" },
@@ -69,9 +87,10 @@ sgx.nonpie_binary = true
 sgx.enclave_size = "{{ enclave_size }}"
 sgx.thread_num = 128
 
-sgx.remote_attestation = "{{ ra_type }}"
-sgx.ra_client_spid = "{{ ra_client_spid }}"
+sgx.remote_attestation = "dcap"
 sgx.ra_client_linkable = {{ 'true' if ra_client_linkable == '1' else 'false' }}
+sgx.isvprodid = {{ isvprodid }}
+sgx.isvsvn    = {{ isvsvn }}
 
 ############################# SGX: TRUSTED FILES ###############################
 
@@ -102,13 +121,34 @@ sgx.trusted_files = [
   "file:{{ arch_libdir }}/",
   "file:/usr/{{ arch_libdir }}/",
   "file:/etc/ssl/certs/ca-certificates.crt",
+  "file:premain-libos"
 ]
 
+############################# SGX: PROTECTED FILES ##############################
+
+# MARBLERUN: these are provisioned by the Coordinator
+sgx.protected_files = [
+    "file:tlscert.pem",
+    "file:tlskey.pem",
+    "file:ca.crt"
+ ]
+
+############################# SGX: ALLOWED FILES ################################
+
+# Specify all non-static files used by app. These files may be accessed by
+# Gramine-SGX but their integrity is not verified (Gramine-SGX does not
+# measure their hashes). This may pose a security risk!
+
 sgx.allowed_files = [
+  # Name Service Switch (NSS) files. Glibc reads these files as part of name-
+  # service information gathering. For more info, see 'man nsswitch.conf'.
   "file:/etc/nsswitch.conf",
   "file:/etc/localtime",
   "file:/etc/hosts",
   "file:/etc/passwd",
   "file:/etc/jwt.hex",
   "file:/root/.ethereum.synced",
+
+  # MARBLERUN: allow the marble's uuid file
+  "file:uuid"
 ]
