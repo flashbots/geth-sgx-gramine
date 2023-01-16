@@ -19,8 +19,8 @@ ARCH_LIBDIR ?= /lib/$(shell $(CC) -dumpmachine)
 
 ENCLAVE_SIZE ?= 1024G
 
-GETH_BRANCH ?= master
-GETH_REPO ?= https://github.com/flashbots/mev-geth
+GETH_BRANCH ?= main
+GETH_REPO ?= https://github.com/flashbots/builder
 
 GPP = g++ -std=c++17
 GORUN = env GO111MODULE=on go run
@@ -61,7 +61,7 @@ $(PATCHED_GOLEVELDB): $(SRCDIR)/Makefile
 # Build Geth
 $(SRCDIR)/build/bin/geth: $(PATCHED_GOLEVELDB)
 	cd $(SRCDIR) && \
-		$(GORUN) build/ci.go install -static ./cmd/geth
+		go build -ldflags "-extldflags '-Wl,-z,stack-size=0x800000,-fuse-ld=gold'" -tags urfave_cli_no_docs -trimpath -v -o $(PWD)/$(SRCDIR)/build/bin/geth ./cmd/geth
 
 ################################## GETH INIT #################################
 
