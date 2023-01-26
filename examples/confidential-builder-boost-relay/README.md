@@ -1,4 +1,4 @@
-# Confidential Block Building
+# Confidential Block Building - Boost Relay communication PoC
 
 This example showcases how searchers, builders and proposers can communicate in a confidential manner, making sure that the searchers bundles cannot be read by builder or proposer until its contents is finally committed to the chain. For this the builder runs MEV-Geth within SGX thus allowing the searcher to transmit its bundle confidentially with the builder unable to extract it from within the enclave. MEV-Geth builds a block including the bundle upon request by the proposer. First only the header of this block is submitted to the proposer. Only after the proposer signs the header and thus confirms that it will include the block in the chain, the block body is released from the enclave and made public.
 
@@ -9,7 +9,24 @@ make
 
 cd ../../
 
-make GETH_REPO=https://gitlab.com/konvera/flashbots/mev-geth-sgx GETH_BRANCH=mev-geth-v1.10.23-mev0.6.2-tls-support SGX=1 ENCLAVE_SIZE=256G
+gramine-argv-serializer \
+        ./geth_init \
+                --goerli \
+                --http \
+                --http.api="eth,net,engine,web3,personal" \
+                --authrpc.jwtsecret /etc/jwt.hex \
+                --builder \
+                --builder.local_relay \
+                --builder.beacon_endpoint="http://127.0.0.1:3500" \
+                --builder.bellatrix_fork_version="0x02001020" \
+                --builder.genesis_fork_version="0x00001020" \
+                --builder.genesis_validators_root="0x043db0d9a83813551ee2f33450d23797757d430911a9320530ad8a0eabc43efb" \
+                --tls \
+                --tlscert /tmp/tlscert.pem \
+                --tlskey /tmp/tlskey.pem
+        > geth.args
+
+make SGX=1 TLS=1 ENCLAVE_SIZE=512G
 ```
 
 > **IMPORTANT:** this will build [flashbots/prysm](https://github.com/flashbots/prysm), [ethereum/go-ethereum](https://github.com/ethereum/go-ethereum), [flashbots/mev-boost](https://github.com/flashbots/mev-boost) and [flashbots/geth-sgx-gramine](https://github.com/flashbots/geth-sgx-gramine). Make sure you have the required build and runtime dependencies installed.
@@ -64,19 +81,6 @@ Run gramine as root so it can access /root/.ethereum.synced
 cd ../../
 sudo env COPY_DATABASE="true" FAKE_PROPOSER="$(jq -r .Pk ../validator_data.json)" \
       gramine-sgx ./geth \
-      --http \
-      --http.api="eth,net,engine,web3,personal" \
-      --authrpc.jwtsecret /etc/jwt.hex \
-      --goerli \
-      --builder \
-      --builder.local_relay \
-      --builder.beacon_endpoint="http://127.0.0.1:3500" \
-      --builder.bellatrix_fork_version="0x02001020" \
-      --builder.genesis_fork_version="0x00001020" \
-      --builder.genesis_validators_root="0x043db0d9a83813551ee2f33450d23797757d430911a9320530ad8a0eabc43efb" \
-      --tls \
-      --tlscert /tmp/tlscert.pem \
-      --tlskey /tmp/tlskey.pem
 ```
 
 ### Register validator

@@ -2,7 +2,9 @@ geth
 geth.manifest
 geth.manifest.sgx
 geth.sig
-geth.token
+geth.args
 geth_init
+attestate
+mbedtls
 go-ethereum/
 goleveldb/
