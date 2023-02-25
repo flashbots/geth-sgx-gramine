@@ -43,9 +43,11 @@ sudo apt-get update && sudo apt-get install -y az-dcap-client
 sudo apt-get install -y libsgx-dcap-default-qpl sgx-dcap-pccs
 ```
 
-# Sepolia Builder Quick start
+# Builder Quickstart
 
 > **IMPORTANT REQUIREMENTS:** Be sure to have a beacon-chain running, and a jwt secret configured at `/etc/jwt.hex`.
+
+The instructions are tailored to Sepolia because of the minimal hardware requirements. The same instructions also work for a mainnet builder setup, although it's hardware requirements are much higher.
 
 Generate the SGX signing key
 ```
@@ -54,7 +56,11 @@ gramine-sgx-gen-private-key
 
 ## Build Geth Enclanve
 ```
+# Sepolia
 make SGX=1 TLS=1 ENCLAVE_SIZE=64G SEPOLIA=1 
+
+# Mainnet
+make SGX=1 TLS=1 ENCLAVE_SIZE=2048G MAINNET=1 
 ```
 
 ## Start enclave
@@ -78,6 +84,31 @@ Attest the enclave via the https endpoint
 ```
 APPLICATION_HOST=<enclave host> APPLICATION_PORT=8545 ./attest dcap \
         <expected mrenclave> <expected mrsigner> <expected isv_prod_id> <expected isv_svn>
+```
+
+```
+./attest dcap ce63bf3f3c29cb5b2c4f8ace497a602b4d3778d051922ba493dc08ebd0649ef3 39a3807530c976387e90a3134ea8bec28bcb4857e79db3ab5eb0e7df6996608e 0 0
+[ using our own SGX-measurement verification callback (via command line options) ]
+  - ignoring ISV_PROD_ID
+  - ignoring ISV_SVN
+
+  . Seeding the random number generator... ok
+  . Connecting to tcp/localhost/8545... ok
+  . Setting up the SSL/TLS structure... ok
+ ok
+  . Installing RA-TLS callback ... ok
+  . Performing the SSL/TLS handshake... ok
+  . Verifying peer X.509 certificate... ok
+  > Write to server: 18 bytes written
+
+GET / HTTP/1.0
+
+  < Read from server: 89 bytes read
+
+HTTP/1.0 200 OK
+Vary: Origin
+Date: Thu, 23 Feb 2023 15:18:57 GMT
+Content-Length: 0
 ```
 
 # Setting Geth Arguments
