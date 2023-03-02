@@ -23,12 +23,14 @@ loader.log_level = "{{ log_level }}"
 loader.env.LD_LIBRARY_PATH = "/lib:{{ arch_libdir }}:/usr/lib:/usr/{{ arch_libdir }}"
 loader.env.GETH_BIN = "{{ geth_bin }}"
 
-loader.env.GODEBUG = { passthrough = true }
-loader.env.GOGC = { passthrough = true }
 loader.env.COPY_DATABASE = { passthrough = true }
 loader.env.FAKE_PROPOSER = { passthrough = true }
+loader.env.BUILDER_SECRET_KEY = { passthrough = true }
+loader.env.BUILDER_TX_SIGNING_KEY = { passthrough = true }
+loader.env.RATLS_CRT_PATH = "/tmp/tlscert.der"
+loader.env.RATLS_KEY_PATH = "/tmp/tlskey.der"
 
-loader.insecure__use_cmdline_argv = true
+loader.argv_src_file = "file:geth.args"
 
 ################################## SIGNALS ####################################
 
@@ -64,14 +66,15 @@ fs.mounts = [
 sys.stack.size = "2M"
 sys.enable_extra_runtime_domain_names_conf = true
 
-loader.pal_internal_mem_size = "256M"
 sgx.nonpie_binary = true
 sgx.enclave_size = "{{ enclave_size }}"
-sgx.thread_num = 128
+sgx.edmm_enable = true
+sgx.max_threads = 128
 
 sgx.remote_attestation = "{{ ra_type }}"
-sgx.ra_client_spid = "{{ ra_client_spid }}"
-sgx.ra_client_linkable = {{ 'true' if ra_client_linkable == '1' else 'false' }}
+
+sgx.isvprodid = {{ isvprodid }}
+sgx.isvsvn    = {{ isvsvn }}
 
 ############################# SGX: TRUSTED FILES ###############################
 
@@ -100,6 +103,7 @@ sgx.trusted_files = [
   "file:{{ geth_bin }}",
   "file:{{ gramine.runtimedir() }}/",
   "file:{{ arch_libdir }}/",
+  "file:geth.args",
   "file:/usr/{{ arch_libdir }}/",
   "file:/etc/ssl/certs/ca-certificates.crt",
 ]

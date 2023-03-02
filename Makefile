@@ -22,6 +22,8 @@ ENCLAVE_SIZE ?= 1024G
 GETH_BRANCH ?= main
 GETH_REPO ?= https://github.com/flashbots/builder
 
+MBEDTLS_PATH = https://github.com/ARMmbed/mbedtls/archive/mbedtls-3.3.0.tar.gz
+
 GPP = g++ -std=c++17
 GORUN = env GO111MODULE=on go run
 SRCDIR = go-ethereum
@@ -38,7 +40,76 @@ endif
 .PHONY: all
 all: geth geth.manifest
 ifeq ($(SGX),1)
-all: geth_init geth.manifest.sgx geth.sig geth.token
+all: geth_init geth.manifest.sgx geth.sig
+endif
+
+############################## GETH ARGUMENTS #################################
+
+ifeq ($(MAINNET),1)
+geth.args:
+	gramine-argv-serializer \
+		./geth_init \
+			--vmodule='miner=4' \
+			--metrics \
+			--metrics.addr=127.0.0.1 \
+			--metrics.builder \
+			--metrics.expensive \
+			--http \
+			--http.api=engine,eth,web3,net,debug,flashbots,builder \
+			--http.corsdomain=* \
+			--http.addr=0.0.0.0 \
+			--http.port=8545 \
+			--http.vhosts=* \
+			--ws \
+			--ws.api=engine,eth,web3,net,debug \
+			--ws.addr=0.0.0.0 \
+			--ws.port=8546 \
+			--ws.origins=* \
+			--graphql \
+			--graphql.corsdomain=* \
+			--graphql.vhosts=* \
+			--authrpc.jwtsecret=/etc/jwt.hex \
+			--authrpc.vhosts=* \
+			--authrpc.addr=0.0.0.0 \
+			--builder \
+			--builder.genesis_fork_version=0x00000000 \
+			--builder.bellatrix_fork_version=0x02000000 \
+			--builder.genesis_validators_root=0x0000000000000000000000000000000000000000000000000000000000000000 \
+			--builder.remote_relay_endpoint=https://boost-relay.flashbots.net \
+			--builder.secondary_remote_relay_endpoints='https://0xa1559ace749633b997cb3fdacffb890aeebdb0f5a3b6aaa7eeeaf1a38af0a8fe88b9e4b1f61f236d2e64d95733327a62@relay.ultrasound.money,https://0xa7ab7a996c8584251c8f925da3170bdfd6ebc75d50f5ddc4050a6fdc77f2a3b5fce2cc750d0865e05d7228af97d69561@agnostic-relay.net' \
+			--miner.extradata='Illuminate Dmocrtz Dstrib Prtct' \
+			--miner.algotype=greedy \
+			--cache.trie.journal= \
+			--cache.trie.rejournal=0 \
+		> $@
+endif
+ifeq ($(SEPOLIA),1)
+geth.args:
+	gramine-argv-serializer \
+		./geth_init \
+			--sepolia \
+			--http \
+			--http.api=engine,eth,web3,net,debug,flashbots \
+			--http.corsdomain=* \
+			--http.addr=0.0.0.0 \
+			--ws \
+			--ws.api=engine,eth,web3,net,debug \
+			--authrpc.jwtsecret=/etc/jwt.hex \
+			--authrpc.vhosts=* \
+			--authrpc.addr=0.0.0.0 \
+			--override.terminaltotaldifficulty=17000000000000000 \
+			--builder \
+			--builder.beacon_endpoint=http://127.0.0.1:3500 \
+			--builder.genesis_fork_version=0x90000069 \
+			--builder.bellatrix_fork_version=0x90000071 \
+			--builder.genesis_validators_root=0xd8ea171f3c94aea21ebc42a1ed61052acf3f9209c00e4efbaaddac09ed9b8078 \
+			--builder.remote_relay_endpoint=https://boost-relay-sepolia.flashbots.net \
+			--miner.extradata='Illuminate Dmocrtz Dstrib Prtct' \
+			--miner.algotype=greedy \
+			--bootnodes=enode://9246d00bc8fd1742e5ad2428b80fc4dc45d786283e05ef6edbd9002cbc335d40998444732fbe921cb88e1d2c73d1b1de53bae6a2237996e9bfe14f871baf7066@18.168.182.86:30303,enode://ec66ddcf1a974950bd4c782789a7e04f8aa7110a72569b6e65fcd51e937e74eed303b1ea734e4d19cfaec9fbff9b6ee65bf31dcb50ba79acce9dd63a6aca61c7@52.14.151.177:30303 \
+			--cache.trie.journal= \
+			--cache.trie.rejournal=0 \
+		> $@
 endif
 
 ############################## GETH EXECUTABLE ###############################
@@ -48,7 +119,11 @@ $(SRCDIR)/Makefile:
 	git clone -b $(GETH_BRANCH) $(GETH_REPO) $(SRCDIR)
 	cd $(SRCDIR) && \
 		go mod download && \
-		patch -p1 < ../gramine-compatibility/0001-go-ethereum.patch
+		patch -p1 < ../geth-patches/0001-go-ethereum.patch
+ifeq ($(TLS),1)
+	cd $(SRCDIR) && \
+		patch -p1 < ../geth-patches/0003-go-ethereum-tls.patch
+endif
 
 # Create a local copy of goleveldb mod and patch it
 $(PATCHED_GOLEVELDB): GOLEVELDB_SRCDIR=$(shell cat $(SRCDIR)/go.mod | awk -v pattern="goleveldb" '$$1 ~ pattern { print $$1 "@" $$2}')
@@ -56,7 +131,7 @@ $(PATCHED_GOLEVELDB): $(SRCDIR)/Makefile
 	cp -r --no-preserve=mode $(GOMODCACHE)/$(GOLEVELDB_SRCDIR) .
 	mv $(PATCHED_GOLEVELDB)* $(PATCHED_GOLEVELDB)
 	cd $(PATCHED_GOLEVELDB) && \
-                patch -p1 < ../gramine-compatibility/0002-goleveldb.patch
+                patch -p1 < ../geth-patches/0002-goleveldb.patch
 
 # Build Geth
 $(SRCDIR)/build/bin/geth: $(PATCHED_GOLEVELDB)
@@ -65,8 +140,22 @@ $(SRCDIR)/build/bin/geth: $(PATCHED_GOLEVELDB)
 
 ################################## GETH INIT #################################
 
+CFLAGS += $(shell pkg-config --cflags mbedtls_gramine)
+LDFLAGS += -ldl -Wl,--enable-new-dtags $(shell pkg-config --libs mbedtls_gramine)
+
 geth_init: geth_init.cpp
-	$(GPP) -o geth_init geth_init.cpp
+	$(GPP) $< $(CFLAGS) $(LDFLAGS) -o $@
+
+##################### REMOTE ATTESTATION CLIENT ##############################
+
+mbedtls:
+	wget $(MBEDTLS_PATH) -O mbedtls.tgz
+	mkdir mbedtls
+	tar -xvzf mbedtls.tgz -C mbedtls --strip-components 1
+	rm mbedtls.tgz
+
+attest: attest.c mbedtls
+	C_INCLUDE_PATH=mbedtls/include $(CC) $< $(CFLAGS) $(LDFLAGS) -o $@
 
 ################################ GETH MANIFEST ###############################
 
@@ -75,19 +164,19 @@ geth_init: geth_init.cpp
 # geth.manifest (to be run under non-SGX Gramine) by replacing variables
 # in the template file using the "gramine-manifest" script.
 
-RA_TYPE ?= none
-RA_CLIENT_SPID ?=
-RA_CLIENT_LINKABLE ?= 0
+RA_TYPE		?= dcap
+ISVPRODID	?= 0
+ISVSVN		?= 0
 
-geth.manifest: geth.manifest.template
+geth.manifest: geth.manifest.template geth.args
 	gramine-manifest \
 		-Dlog_level=$(GRAMINE_LOG_LEVEL) \
 		-Darch_libdir=$(ARCH_LIBDIR) \
 		-Dentrypoint="./geth_init" \
 		-Dgeth_bin="./geth" \
 		-Dra_type=$(RA_TYPE) \
-		-Dra_client_spid=$(RA_CLIENT_SPID) \
-		-Dra_client_linkable=$(RA_CLIENT_LINKABLE) \
+		-Disvprodid=$(ISVPRODID) \
+		-Disvsvn=$(ISVSVN) \
 		-Denclave_size=$(ENCLAVE_SIZE) \
 		$< >$@
 
@@ -95,11 +184,6 @@ geth.manifest: geth.manifest.template
 # procedure measures all Geth trusted files, adds the measurement to the
 # resulting manifest.sgx file (among other, less important SGX options) and
 # creates geth.sig (SIGSTRUCT object).
-#
-# Gramine-SGX requires EINITTOKEN and SIGSTRUCT objects (see SGX hardware ABI,
-# in particular EINIT instruction). The "gramine-sgx-get-token" script
-# generates EINITTOKEN based on a SIGSTRUCT and puts it in .token file. Note
-# that filenames must be the same as the manifest name (i.e., "geth").
 
 # Make on Ubuntu <= 20.04 doesn't support "Rules with Grouped Targets" (`&:`),
 # see the gramine helloworld example for details on this workaround.
@@ -111,9 +195,6 @@ sgx_sign: geth.manifest
 	gramine-sgx-sign \
 		--manifest $< \
 		--output $<.sgx
-
-geth.token: geth.sig
-	gramine-sgx-get-token --output $@ --sig $<
 
 ########################### COPIES OF EXECUTABLES #############################
 
@@ -140,8 +221,8 @@ endif
 
 .PHONY: clean
 clean:
-	$(RM) *.manifest *.manifest.sgx *.token *.sig OUTPUT* *.PID TEST_STDOUT TEST_STDERR
+	$(RM) *.manifest *.manifest.sgx *.sig *.args OUTPUT* *.PID TEST_STDOUT TEST_STDERR
 
 .PHONY: distclean
 distclean: clean
-	$(RM) -rf $(SRCDIR) $(PATCHED_GOLEVELDB) geth geth_init
+	$(RM) -rf $(SRCDIR) $(PATCHED_GOLEVELDB) geth geth_init mbedtls attest
