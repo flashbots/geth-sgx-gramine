@@ -5,9 +5,7 @@ This example showcases how searchers, builders and proposers can communicate in 
 ### Build 
 
 ```
-make
-
-cd ../../
+make -C examples/confidential-builder-boost-relay/
 
 gramine-argv-serializer \
         ./geth_init \
@@ -34,7 +32,7 @@ make SGX=1 TLS=1 ENCLAVE_SIZE=512G
 ### Generate [mev-boost test-cli](https://github.com/flashbots/mev-boost/tree/Main/cmd/test-cli) validator data
 
 ```
-./mev-boost/test-cli generate
+./examples/confidential-builder-boost-relay/mev-boost/test-cli generate
 ```
 
 ### Generate JWT secret
@@ -46,7 +44,7 @@ openssl rand -hex 32 | sudo tee /etc/jwt.hex
 ### Start [flashbots patched](https://github.com/flashbots/prysm) prysm
 
 ```
-./prysm/bazel-bin/cmd/beacon-chain/beacon-chain_/beacon-chain \
+./examples/confidential-builder-boost-relay/prysm/bazel-bin/cmd/beacon-chain/beacon-chain_/beacon-chain \
       --accept-terms-of-use \
       --grpc-gateway-host=0.0.0.0 \
       --jwt-secret=/etc/jwt.hex \
@@ -56,7 +54,7 @@ openssl rand -hex 32 | sudo tee /etc/jwt.hex
       --genesis-beacon-api-url=https://goerli.checkpoint-sync.ethpandaops.io
 ```
 
-### Run upstream geth and let it sync to head
+### Run geth directly and let it sync to head
 
 Run geth as root so it can sync to /root/.ethereum
 
@@ -67,33 +65,30 @@ sudo ./geth/build/bin/geth --http \
 ```
 
 
-### After _stopping upstream geth_, move database
+### After _stopping geth_, move database
 
 ```
-sudo mv /root/.ethereum /root/.ethereum.synced
+sudo mv /root/.ethereum data/synced_state
 ```
 
 ### Start geth within SGX
 
-Run gramine as root so it can access /root/.ethereum.synced
-
 ```
-cd ../../
-sudo env COPY_DATABASE="true" FAKE_PROPOSER="$(jq -r .Pk ../validator_data.json)" \
+env COPY_DATABASE="true" FAKE_PROPOSER="$(jq -r .Pk validator_data.json)" \
       gramine-sgx ./geth \
 ```
 
 ### Register validator
 
 ```
-./mev-boost/test-cli register -mev-boost http://127.0.0.1:28545 -genesis-fork-version "0x00001020"
+./examples/confidential-builder-boost-relay/mev-boost/test-cli register -mev-boost http://127.0.0.1:28545 -genesis-fork-version "0x00001020"
 ```
 
 
 ### After geth within SGX has succesfully synced to head, send searcher bundle
 
 ```
-NODE_TLS_REJECT_UNAUTHORIZED=0 node move_flash.js
+NODE_TLS_REJECT_UNAUTHORIZED=0 node examples/confidential-builder-boost-relay/move_flash.js
 ```
 
 > **IMPORTANT:** Update MAIN_ADDRESS and MAIN_PRIVATE_KEY variables in `move_flash.js` with an address containing sufficient balance
@@ -101,6 +96,6 @@ NODE_TLS_REJECT_UNAUTHORIZED=0 node move_flash.js
 ### Request getHeader and getPayload once geth has included the bundle 
 
 ```
-./mev-boost/test-cli getPayload -mev-boost http://127.0.0.1:28545 -genesis-fork-version "0x00001020" -bn http://localhost:3500  -genesis-validators-root "0xbf7e331f7f7c1dd2e05159666b3bf8bc7a8a3a9eb1d518969eab529dd9b88c1a" -bellatrix-fork-version "0x02001020"
+./examples/confidential-builder-boost-relay/mev-boost/test-cli getPayload -mev-boost http://127.0.0.1:28545 -genesis-fork-version "0x00001020" -bn http://localhost:3500  -genesis-validators-root "0xbf7e331f7f7c1dd2e05159666b3bf8bc7a8a3a9eb1d518969eab529dd9b88c1a" -bellatrix-fork-version "0x02001020"
 
 ```

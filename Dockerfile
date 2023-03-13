@@ -42,10 +42,6 @@ COPY --from=build-gramine /geth-sgx/*.manifest     \
 COPY --from=build-gramine /geth-sgx/*.deb /deb/
 RUN dpkg --install --force-depends /deb/*.deb && rm -r /deb
 
-# add .ethereum.synced folder to be mounted by gramine
-VOLUME /root/.ethereum.synced
-VOLUME /root/.ethereum
-
 EXPOSE 8545 8546 30303 30303/udp
 ENTRYPOINT ["gramine-sgx", "/geth-sgx/geth"]
 

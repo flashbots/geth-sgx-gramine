@@ -57,7 +57,7 @@ fs.mounts = [
   { path = "/usr", uri = "file:/usr" },
   { path = "/etc", uri = "file:/etc" },
   { type = "tmpfs", path = "/root/.ethereum" },
-  { path = "/root/.ethereum.synced", uri = "file:/root/.ethereum.synced" },
+  { path = "/data/", uri = "file:data/" },
   { type = "tmpfs", path = "/tmp" },
 ]
 
@@ -68,7 +68,7 @@ sys.enable_extra_runtime_domain_names_conf = true
 
 sgx.nonpie_binary = true
 sgx.enclave_size = "{{ enclave_size }}"
-sgx.edmm_enable = true
+sgx.edmm_enable = false
 sgx.max_threads = 128
 
 sgx.remote_attestation = "{{ ra_type }}"
@@ -114,5 +114,6 @@ sgx.allowed_files = [
   "file:/etc/hosts",
   "file:/etc/passwd",
   "file:/etc/jwt.hex",
-  "file:/root/.ethereum.synced",
+  "file:/data",
+  "file:data",
 ]
