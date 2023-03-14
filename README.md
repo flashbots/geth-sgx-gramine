@@ -4,8 +4,8 @@ This repository contains an example for running Geth in [Gramine](https://gramin
 
 For more background and details, see also:
 
-* https://writings.flashbots.net/geth-inside-sgx
-* https://collective.flashbots.net/t/running-geth-within-sgx-our-experience-learnings-and-code-flashbots/938
+* https://writings.flashbots.net/block-building-inside-sgx ([discussion](https://collective.flashbots.net/t/block-building-inside-sgx/1373))
+* https://writings.flashbots.net/geth-inside-sgx ([discussion](https://collective.flashbots.net/t/running-geth-within-sgx-our-experience-learnings-and-code-flashbots/938))
 
 # Prerequisites
 
@@ -25,12 +25,12 @@ sudo apt-get install -y libssl-dev gnupg software-properties-common build-essent
 
 ## Attestation dependencies
 
-Attestation requires additional attestation infrastructure to be set up and configured. Enclaves running on Azure can make use of Azure's attestation infrastructure `a)`, whereas elsewhere, `b)` the attestation infrastructure including the provisioning certificate caching server (PCCS) needs to be set up and configured properly.  
+Attestation requires additional attestation infrastructure to be set up and configured. Enclaves running on Azure can make use of Azure's attestation infrastructure `a)`, whereas elsewhere, `b)` the attestation infrastructure including the provisioning certificate caching server (PCCS) needs to be set up and configured properly.
 
 ```
 sudo apt-key adv --fetch-keys 'https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key'
 sudo add-apt-repository "deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu `lsb_release -cs` main"
-sudo apt-get update && sudo apt-get install -y libsgx-dcap-ql 
+sudo apt-get update && sudo apt-get install -y libsgx-dcap-ql
 ```
 ### a) Azure cloud attestation
 ```
@@ -57,10 +57,10 @@ gramine-sgx-gen-private-key
 ## Build Geth Enclanve
 ```
 # Sepolia
-make SGX=1 TLS=1 ENCLAVE_SIZE=64G SEPOLIA=1 
+make SGX=1 TLS=1 ENCLAVE_SIZE=64G SEPOLIA=1
 
 # Mainnet
-make SGX=1 TLS=1 ENCLAVE_SIZE=2048G MAINNET=1 
+make SGX=1 TLS=1 ENCLAVE_SIZE=2048G MAINNET=1
 ```
 
 ## Start enclave
@@ -194,7 +194,7 @@ Recommended reading: [Gramine attestation docs](https://gramine.readthedocs.io/e
 ## How does the attestation work?
 Gramine's RA-TLS implementation is used to provide a convenient way of attestation and secure communication with the Geth node. RA-TLS integrates Intel SGX remote attestation into the TLS connection setup. Conceptually, it extends the standard X.509 certificate with SGX-related information (SGX quote). The additional information allows the remote user (verifier) of the certificate to verify that it is indeed communicating with an SGX enclave (attester).
 
-The RA-TLS certificate is created by default on startup. Attestation functionality can be disabled via the `RA_TYPE` environment variable. 
+The RA-TLS certificate is created by default on startup. Attestation functionality can be disabled via the `RA_TYPE` environment variable.
 
 Only DCAP attestation is supported, legacy EPID attestation is **not supported**.
 
@@ -220,7 +220,7 @@ APPLICATION_HOST=<enclave host> APPLICATION_PORT=<enclave port> ./attest dcap \
 
 Geth does not have https endpoints by default. The `TLS` environment variable can be set at build time to apply a simple patch to `go-ethereum`, which will wrap a TLS layer around Geths `http` and `ws` endpoints. The TLS connection is automatically configured to serve the `RA-TLS` certificate created on startup.
 
-It is also possible to create a TLS implementation from scratch. `RATLS_CRT_PATH` and `RATLS_KEY_PATH` environment variables control the file locations and are passed to `geth_init`, which creates key and certificate at said location. The environment variables are subsequently passed on when starting Geth. 
+It is also possible to create a TLS implementation from scratch. `RATLS_CRT_PATH` and `RATLS_KEY_PATH` environment variables control the file locations and are passed to `geth_init`, which creates key and certificate at said location. The environment variables are subsequently passed on when starting Geth.
 
 # Attribution
 Geth-SGX is developed and tested by [konVera](https://konvera.io) in collaboration with Flashbots
