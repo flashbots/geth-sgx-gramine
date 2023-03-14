@@ -76,11 +76,11 @@ geth.args:
 			--builder.bellatrix_fork_version=0x02000000 \
 			--builder.genesis_validators_root=0x0000000000000000000000000000000000000000000000000000000000000000 \
 			--builder.remote_relay_endpoint=https://boost-relay.flashbots.net \
-			--builder.secondary_remote_relay_endpoints='https://0xa1559ace749633b997cb3fdacffb890aeebdb0f5a3b6aaa7eeeaf1a38af0a8fe88b9e4b1f61f236d2e64d95733327a62@relay.ultrasound.money,https://0xa7ab7a996c8584251c8f925da3170bdfd6ebc75d50f5ddc4050a6fdc77f2a3b5fce2cc750d0865e05d7228af97d69561@agnostic-relay.net' \
 			--miner.extradata='Illuminate Dmocrtz Dstrib Prtct' \
 			--miner.algotype=greedy \
 			--cache.trie.journal= \
 			--cache.trie.rejournal=0 \
+			--datadir.ancient=/data/ancient \
 		> $@
 endif
 ifeq ($(SEPOLIA),1)
@@ -97,7 +97,6 @@ geth.args:
 			--authrpc.jwtsecret=/etc/jwt.hex \
 			--authrpc.vhosts=* \
 			--authrpc.addr=0.0.0.0 \
-			--override.terminaltotaldifficulty=17000000000000000 \
 			--builder \
 			--builder.beacon_endpoint=http://127.0.0.1:3500 \
 			--builder.genesis_fork_version=0x90000069 \
@@ -106,9 +105,11 @@ geth.args:
 			--builder.remote_relay_endpoint=https://boost-relay-sepolia.flashbots.net \
 			--miner.extradata='Illuminate Dmocrtz Dstrib Prtct' \
 			--miner.algotype=greedy \
+			--override.shanghai 1677557088 \
 			--bootnodes=enode://9246d00bc8fd1742e5ad2428b80fc4dc45d786283e05ef6edbd9002cbc335d40998444732fbe921cb88e1d2c73d1b1de53bae6a2237996e9bfe14f871baf7066@18.168.182.86:30303,enode://ec66ddcf1a974950bd4c782789a7e04f8aa7110a72569b6e65fcd51e937e74eed303b1ea734e4d19cfaec9fbff9b6ee65bf31dcb50ba79acce9dd63a6aca61c7@52.14.151.177:30303 \
 			--cache.trie.journal= \
 			--cache.trie.rejournal=0 \
+			--datadir.ancient=/data/ancient \
 		> $@
 endif
 

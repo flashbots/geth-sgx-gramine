@@ -169,7 +169,7 @@ To run Gramine in non-SGX (direct) mode, replace `gramine-sgx` with
 
 | Variable                 	| Default            	| Description                                                                                                                                                 	|
 |--------------------------	|--------------------	|-------------------------------------------------------------------------------------------------------------------------------------------------------------	|
-| `COPY_DATABASE`          	| _empty_            	| Set to `true`. Copies an existing geth database into the enclave. The existing database **must** be located in the hard coded path `/root/.ethereum.synced` 	|
+| `COPY_DATABASE`          	| _empty_            	| Set to `true`. Copies an existing geth database into the enclave. The existing database **must** be located in the hard coded path `data/synced_state/` 	|
 | `FAKE_PROPOSER`          	| _empty_            	| Sets a fake validator that will automatically be configured to always propose the next block. Required for the `Boost Relay communication PoC`              	|
 | `BUILDER_SECRET_KEY`     	| _empty_            	| Builder key used for signing blocks                                                                                                                         	|
 | `BUILDER_TX_SIGNING_KEY` 	| _empty_            	| private key of the builder used to sign payment transaction, must be the same as the coinbase address                                                       	|

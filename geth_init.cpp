@@ -146,7 +146,7 @@ int main(int argc, char **argv)
 
 	if ( copy && strcmp(copy,"true") == 0 ) {
 		const char* source = getenv("DATABASE_SOURCE") ?
-		       getenv("DATABASE_SOURCE") : "/root/.ethereum.synced";
+		       getenv("DATABASE_SOURCE") : "data/synced_state";
 		const char* target = getenv("DATABASE_TARGET") ?
 			getenv("DATABASE_TARGET") : "/root/.ethereum";
 
