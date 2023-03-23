@@ -129,19 +129,20 @@ gramine-argv-serializer \
 
 ## Important Makefile Environment Variables
 
-| Variable       	| Default                                	| Description                                                                                                      	|
-|----------------	|----------------------------------------	|------------------------------------------------------------------------------------------------------------------	|
-| `SGX`          	| _empty_                                	| Creates files for `gramine-sgx` execution, if `SGX!=1`, files for `gramine-direct` execution are created         	|
-| `DEBUG`        	| _empty_                                	| Controls Gramine's `DEBUG_LOG` verbosity, `1=='debug'`, else `'error'`                                           	|
-| `ENCLAVE_SIZE` 	| `1024G`                                	| Amount of memory allocated to the enclave, `1024G` is the minimum amount required to fit the Ethereum mainnet DB 	|
-| `GETH_REPO`    	| `https://github.com/flashbots/builder` 	| Location of the `go-ethereum` source code                                                                        	|
-| `GETH_BRANCH`  	| `main`                                 	| `go-ethereum` branch                                                                                             	|
-| `MAINNET`      	| _empty_                                	| Set to `1` to create a `geth.args` file for the default mainnet builder configuration                            	|
-| `SEPOLIA`      	| _empty_                                	| Set to `1` to create a `geth.args` file for the default sepolia builder configuration                            	|
-| `RA_TYPE`      	| `dcap`                                 	| Controls attestation functionality, set to `none` to disable                                                     	|
-| `TLS`          	| _empty_                                	| Set to `1` to apply `go-ethereum` `RA-TLS` patch                                                                 	|
-| `ISVPRODID`    	| `0`                                    	| Product ID of the Enclave                                                                                        	|
-| `ISVSVN`       	| `0`                                    	| Security Version Number of the Enclave                                                                           	|
+| Variable       | Default                                | Description                                                                                                            |
+|----------------|----------------------------------------|------------------------------------------------------------------------------------------------------------------------|
+| `SGX`          | _empty_                                | Creates files for `gramine-sgx` execution, if `SGX!=1`, files for `gramine-direct` execution are created               |
+| `DEBUG`        | _empty_                                | Controls Gramine's `DEBUG_LOG` verbosity, `1=='debug'`, else `'error'`                                                 |
+| `ENCLAVE_SIZE` | `1024G`                                | Amount of memory allocated to the enclave, `1024G` is the minimum amount required to fit the Ethereum mainnet DB       |
+| `GETH_REPO`    | `https://github.com/flashbots/builder` | Location of the `go-ethereum` source code                                                                              |
+| `GETH_BRANCH`  | `main`                                 | `go-ethereum` branch                                                                                                   |
+| `MAINNET`      | _empty_                                | Set to `1` to create a `geth.args` file for the default mainnet builder configuration                                  |
+| `SEPOLIA`      | _empty_                                | Set to `1` to create a `geth.args` file for the default sepolia builder configuration                                  |
+| `RA_TYPE`      | `dcap`                                 | Controls attestation functionality, set to `none` to disable                                                           |
+| `TLS`          | _empty_                                | Set to `1` to apply `go-ethereum` `RA-TLS` patch                                                                       |
+| `PROTECT`      | _empty_                                | Set to `1` to apply patch that limits `go-ethereum` unauthorized http and ws endpoints to the `eth_sendBundle` method. |
+| `ISVPRODID`    | `0`                                    | Product ID of the Enclave                                                                                              |
+| `ISVSVN`       | `0`                                    | Security Version Number of the Enclave                                                                                 |
 
 ## Building for Linux
 
