@@ -125,6 +125,10 @@ ifeq ($(TLS),1)
 	cd $(SRCDIR) && \
 		patch -p1 < ../geth-patches/0003-go-ethereum-tls.patch
 endif
+ifeq ($(PROTECT),1)
+	cd $(SRCDIR) && \
+		patch -p1 < ../geth-patches/0004-protect.patch
+endif
 
 # Create a local copy of goleveldb mod and patch it
 $(PATCHED_GOLEVELDB): GOLEVELDB_SRCDIR=$(shell cat $(SRCDIR)/go.mod | awk -v pattern="goleveldb" '$$1 ~ pattern { print $$1 "@" $$2}')
