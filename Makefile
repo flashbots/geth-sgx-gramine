@@ -72,6 +72,7 @@ geth.args:
 			--authrpc.vhosts=* \
 			--authrpc.addr=0.0.0.0 \
 			--builder \
+			--builder.beacon_endpoints=http://127.0.0.1:3500 \
 			--builder.genesis_fork_version=0x00000000 \
 			--builder.bellatrix_fork_version=0x02000000 \
 			--builder.genesis_validators_root=0x0000000000000000000000000000000000000000000000000000000000000000 \
@@ -98,7 +99,7 @@ geth.args:
 			--authrpc.vhosts=* \
 			--authrpc.addr=0.0.0.0 \
 			--builder \
-			--builder.beacon_endpoint=http://127.0.0.1:3500 \
+			--builder.beacon_endpoints=http://127.0.0.1:3500 \
 			--builder.genesis_fork_version=0x90000069 \
 			--builder.bellatrix_fork_version=0x90000071 \
 			--builder.genesis_validators_root=0xd8ea171f3c94aea21ebc42a1ed61052acf3f9209c00e4efbaaddac09ed9b8078 \
@@ -115,28 +116,33 @@ endif
 
 ############################## GETH EXECUTABLE ###############################
 
-# Clone Geth, fetch dependencies and patch Geth 
+# Clone Geth and fetch dependencies
 $(SRCDIR)/Makefile:
 	git clone -b $(GETH_BRANCH) $(GETH_REPO) $(SRCDIR)
-	cd $(SRCDIR) && \
-		go mod download && \
-		patch -p1 < ../geth-patches/0001-go-ethereum.patch
+	cd $(SRCDIR) && go mod download
+
+# patch Geth
+$(SRCDIR)/PATCHED: FLOCK_REVISION=$(shell git -C $(SRCDIR) merge-base --is-ancestor 09a9ccdbce HEAD && echo 1)
+$(SRCDIR)/PATCHED: $(SRCDIR)/Makefile
+	if [ 1 -eq $(FLOCK_REVISION) ]; then \
+		patch -d $(SRCDIR) -p1 < geth-patches/0001a-go-ethereum.patch ; \
+	else \
+		patch -d $(SRCDIR) -p1 < geth-patches/0001-go-ethereum.patch ; \
+	fi
 ifeq ($(TLS),1)
-	cd $(SRCDIR) && \
-		patch -p1 < ../geth-patches/0003-go-ethereum-tls.patch
+	patch -d $(SRCDIR) -p1 < geth-patches/0003-go-ethereum-tls.patch
 endif
 ifeq ($(PROTECT),1)
-	cd $(SRCDIR) && \
-		patch -p1 < ../geth-patches/0004-protect.patch
+	patch -d $(SRCDIR) -p1 < geth-patches/0004-protect.patch
 endif
+	touch $(SRCDIR)/PATCHED
 
 # Create a local copy of goleveldb mod and patch it
 $(PATCHED_GOLEVELDB): GOLEVELDB_SRCDIR=$(shell cat $(SRCDIR)/go.mod | awk -v pattern="goleveldb" '$$1 ~ pattern { print $$1 "@" $$2}')
-$(PATCHED_GOLEVELDB): $(SRCDIR)/Makefile
+$(PATCHED_GOLEVELDB): $(SRCDIR)/PATCHED
 	cp -r --no-preserve=mode $(GOMODCACHE)/$(GOLEVELDB_SRCDIR) .
 	mv $(PATCHED_GOLEVELDB)* $(PATCHED_GOLEVELDB)
-	cd $(PATCHED_GOLEVELDB) && \
-                patch -p1 < ../geth-patches/0002-goleveldb.patch
+	patch -d $(PATCHED_GOLEVELDB) -p1 < geth-patches/0002-goleveldb.patch
 
 # Build Geth
 $(SRCDIR)/build/bin/geth: $(PATCHED_GOLEVELDB)

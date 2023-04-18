@@ -11,7 +11,7 @@ For more background and details, see also:
 
 **OS:** Ubuntu 20.04, Linux Kernel >= 5.11
 
-**go-ethereum:** v1.10.22 until v1.11.2 supported
+**go-ethereum:** v1.10.22 and up supported
 
 **Hardware:** CPU supporting SGX2 (Intel Skylake and newer), +64GB EPC Enclave Memory (for mainnet), +1TB Swap (for mainnet)
 
