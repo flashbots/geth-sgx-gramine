@@ -1,0 +1,32 @@
+version: "3.7"
+services:
+  geth-sgx:
+    image: "geth-sgx"
+    oom_kill_disable: true
+    ports:
+      - "0.0.0.0:8545:8545"
+      - "0.0.0.0:8546:8546"
+      - "0.0.0.0:30303:30303/tcp"
+      - "0.0.0.0:30303:30303/udp"
+    env_file:
+      - builder.env
+    volumes:
+      - /run/aesmd:/run/aesmd
+      - ./data:/geth-sgx/data
+      - /etc/jwt.hex:/etc/jwt.hex
+    devices:
+      - /dev/sgx_enclave
+  prysm:
+    image: "prysmaticlabs/prysm-beacon-chain:v4.0.2"
+    oom_kill_disable: true
+    volumes:
+      - /etc/jwt.hex:/etc/jwt.hex
+    command:
+      - --accept-terms-of-use
+      - --execution-endpoint=http://geth-sgx:8551
+      - --rpc-host=0.0.0.0
+      - --grpc-gateway-host=0.0.0.0
+      - --monitoring-host=0.0.0.0
+      - --checkpoint-sync-url=https://beaconstate.info
+      - --genesis-beacon-api-url=https://beaconstate.info
+      - --jwt-secret=/etc/jwt.hex

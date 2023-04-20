@@ -72,7 +72,7 @@ geth.args:
 			--authrpc.vhosts=* \
 			--authrpc.addr=0.0.0.0 \
 			--builder \
-			--builder.beacon_endpoints=http://127.0.0.1:3500 \
+			--builder.beacon_endpoints=http://127.0.0.1:3500,http://prysm:3500 \
 			--builder.genesis_fork_version=0x00000000 \
 			--builder.bellatrix_fork_version=0x02000000 \
 			--builder.genesis_validators_root=0x0000000000000000000000000000000000000000000000000000000000000000 \
@@ -99,7 +99,7 @@ geth.args:
 			--authrpc.vhosts=* \
 			--authrpc.addr=0.0.0.0 \
 			--builder \
-			--builder.beacon_endpoints=http://127.0.0.1:3500 \
+			--builder.beacon_endpoints=http://127.0.0.1:3500,http://prysm:3500 \
 			--builder.genesis_fork_version=0x90000069 \
 			--builder.bellatrix_fork_version=0x90000071 \
 			--builder.genesis_validators_root=0xd8ea171f3c94aea21ebc42a1ed61052acf3f9209c00e4efbaaddac09ed9b8078 \
