@@ -77,6 +77,7 @@ geth.args:
 			--builder.bellatrix_fork_version=0x02000000 \
 			--builder.genesis_validators_root=0x0000000000000000000000000000000000000000000000000000000000000000 \
 			--builder.remote_relay_endpoint=https://boost-relay.flashbots.net \
+			--builder.blacklist=/etc/ofac_blacklist.json \
 			--miner.extradata='Illuminate Dmocrtz Dstrib Prtct' \
 			--datadir.ancient=/data/ancient \
 		> $@

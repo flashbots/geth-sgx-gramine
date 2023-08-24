@@ -53,6 +53,8 @@ COPY --from=build-gramine /geth-sgx/*.manifest     \
                           /geth-sgx/geth_init      \
                           ./
 
+ADD https://gist.githubusercontent.com/flashbots-bot/aee11d750c3528fa691f8abb860ed9f5/raw/ofac_blacklist.json /etc/
+
 EXPOSE 8545 8546 30303 30303/udp
 ENTRYPOINT ["gramine-sgx", "/geth-sgx/geth"]
 

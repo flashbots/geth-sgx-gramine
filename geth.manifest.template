@@ -114,6 +114,7 @@ sgx.allowed_files = [
   "file:/etc/hosts",
   "file:/etc/passwd",
   "file:/etc/jwt.hex",
+  "file:/etc/ofac_blacklist.json",
   "file:/data",
   "file:data",
 ]
