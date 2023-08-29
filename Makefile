@@ -78,9 +78,6 @@ geth.args:
 			--builder.genesis_validators_root=0x0000000000000000000000000000000000000000000000000000000000000000 \
 			--builder.remote_relay_endpoint=https://boost-relay.flashbots.net \
 			--miner.extradata='Illuminate Dmocrtz Dstrib Prtct' \
-			--miner.algotype=greedy \
-			--cache.trie.journal= \
-			--cache.trie.rejournal=0 \
 			--datadir.ancient=/data/ancient \
 		> $@
 endif
@@ -105,11 +102,8 @@ geth.args:
 			--builder.genesis_validators_root=0xd8ea171f3c94aea21ebc42a1ed61052acf3f9209c00e4efbaaddac09ed9b8078 \
 			--builder.remote_relay_endpoint=https://boost-relay-sepolia.flashbots.net \
 			--miner.extradata='Illuminate Dmocrtz Dstrib Prtct' \
-			--miner.algotype=greedy \
 			--override.shanghai 1677557088 \
 			--bootnodes=enode://9246d00bc8fd1742e5ad2428b80fc4dc45d786283e05ef6edbd9002cbc335d40998444732fbe921cb88e1d2c73d1b1de53bae6a2237996e9bfe14f871baf7066@18.168.182.86:30303,enode://ec66ddcf1a974950bd4c782789a7e04f8aa7110a72569b6e65fcd51e937e74eed303b1ea734e4d19cfaec9fbff9b6ee65bf31dcb50ba79acce9dd63a6aca61c7@52.14.151.177:30303 \
-			--cache.trie.journal= \
-			--cache.trie.rejournal=0 \
 			--datadir.ancient=/data/ancient \
 		> $@
 endif
