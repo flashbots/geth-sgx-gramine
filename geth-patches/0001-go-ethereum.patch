@@ -1,0 +1,46 @@
+diff --git a/core/rawdb/freezer.go b/core/rawdb/freezer.go
+index 6dea98c3d..1af729671 100644
+--- a/core/rawdb/freezer.go
++++ b/core/rawdb/freezer.go
+@@ -101,9 +101,9 @@ func NewFreezer(datadir string, namespace string, readonly bool, maxTableSize ui
+ 	// Leveldb uses LOCK as the filelock filename. To prevent the
+ 	// name collision, we use FLOCK as the lock name.
+ 	lock, _, err := fileutil.Flock(filepath.Join(datadir, "FLOCK"))
+-	if err != nil {
+-		return nil, err
+-	}
++	//if err != nil {
++	//	return nil, err
++	//}
+ 	// Open all the supported data tables
+ 	freezer := &Freezer{
+ 		readonly:     readonly,
+diff --git a/go.mod b/go.mod
+index 4a769c7a2..478759025 100644
+--- a/go.mod
++++ b/go.mod
+@@ -1,1 +1,3 @@
+ module github.com/ethereum/go-ethereum
++
++replace github.com/syndtr/goleveldb => ../goleveldb
+diff --git a/node/node.go b/node/node.go
+index b60e32f22..0e31438ce 100644
+--- a/node/node.go
++++ b/node/node.go
+@@ -325,11 +325,11 @@ func (n *Node) openDataDir() error {
+ 	}
+ 	// Lock the instance directory to prevent concurrent use by another instance as well as
+ 	// accidental use of the instance directory as a database.
+-	release, _, err := fileutil.Flock(filepath.Join(instdir, "LOCK"))
+-	if err != nil {
+-		return convertFileLockError(err)
+-	}
+-	n.dirLock = release
++	//release, _, err := fileutil.Flock(filepath.Join(instdir, "LOCK"))
++	//if err != nil {
++	//	return convertFileLockError(err)
++	//}
++	//n.dirLock = release
+ 	return nil
+ }
+ 

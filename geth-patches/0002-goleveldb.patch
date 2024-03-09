@@ -1,0 +1,26 @@
+Subject: [PATCH] fix: ignore flock error
+
+---
+ leveldb/storage/file_storage.go | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/leveldb/storage/file_storage.go b/leveldb/storage/file_storage.go
+index 3c5e70a..53da9a2 100644
+--- a/leveldb/storage/file_storage.go
++++ b/leveldb/storage/file_storage.go
+@@ -105,9 +105,9 @@ func OpenFile(path string, readOnly bool) (Storage, error) {
+ 	}
+ 
+ 	flock, err := newFileLock(filepath.Join(path, "LOCK"), readOnly)
+-	if err != nil {
+-		return nil, err
+-	}
++	//if err != nil {
++	//	return nil, err
++	//}
+ 
+ 	defer func() {
+ 		if err != nil {
+-- 
+2.25.1
+

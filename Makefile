@@ -29,6 +29,7 @@ GORUN = env GO111MODULE=on go run
 SRCDIR = go-ethereum
 
 GOMODCACHE = $(shell go env GOMODCACHE)
+PATCHED_GOLEVELDB = goleveldb
 
 ifeq ($(DEBUG),1)
 GRAMINE_LOG_LEVEL = debug
@@ -115,7 +116,13 @@ $(SRCDIR)/Makefile:
 	cd $(SRCDIR) && go mod download
 
 # patch Geth
+$(SRCDIR)/PATCHED: FLOCK_REVISION=$(shell git -C $(SRCDIR) merge-base --is-ancestor 09a9ccdbce HEAD && echo 1)
 $(SRCDIR)/PATCHED: $(SRCDIR)/Makefile
+	if [ 1 -eq $(FLOCK_REVISION) ]; then \
+		patch -d $(SRCDIR) -p1 < geth-patches/0001a-go-ethereum.patch ; \
+	else \
+		patch -d $(SRCDIR) -p1 < geth-patches/0001-go-ethereum.patch ; \
+	fi
 ifeq ($(TLS),1)
 	patch -d $(SRCDIR) -p1 < geth-patches/0003-go-ethereum-tls.patch
 endif
@@ -124,8 +131,15 @@ ifeq ($(PROTECT),1)
 endif
 	touch $(SRCDIR)/PATCHED
 
+# Create a local copy of goleveldb mod and patch it
+$(PATCHED_GOLEVELDB): GOLEVELDB_SRCDIR=$(shell cat $(SRCDIR)/go.mod | awk -v pattern="goleveldb" '$$1 ~ pattern { print $$1 "@" $$2}')
+$(PATCHED_GOLEVELDB): $(SRCDIR)/PATCHED
+	cp -r --no-preserve=mode $(GOMODCACHE)/$(GOLEVELDB_SRCDIR) .
+	mv $(PATCHED_GOLEVELDB)* $(PATCHED_GOLEVELDB)
+	patch -d $(PATCHED_GOLEVELDB) -p1 < geth-patches/0002-goleveldb.patch
+
 # Build Geth
-$(SRCDIR)/build/bin/geth: $(SRCDIR)/PATCHED
+$(SRCDIR)/build/bin/geth: $(PATCHED_GOLEVELDB)
 	cd $(SRCDIR) && \
 		go build -ldflags "-extldflags '-Wl,-z,stack-size=0x800000,-fuse-ld=gold'" -tags urfave_cli_no_docs -trimpath -v -o $(PWD)/$(SRCDIR)/build/bin/geth ./cmd/geth
 
@@ -216,4 +230,4 @@ clean:
 
 .PHONY: distclean
 distclean: clean
-	$(RM) -rf $(SRCDIR) geth geth_init mbedtls attest
+	$(RM) -rf $(SRCDIR) $(PATCHED_GOLEVELDB) geth geth_init mbedtls attest
