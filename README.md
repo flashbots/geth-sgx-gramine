@@ -19,7 +19,7 @@ Follow the [Gramine Quickstart](https://gramine.readthedocs.io/en/stable/quickst
 
 ## Build dependencies
 ```
-sudo snap install --classic go
+sudo snap install --classic ego-dev
 sudo apt-get install -y libssl-dev gnupg software-properties-common build-essential ca-certificates git
 ```
 

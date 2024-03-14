@@ -10,6 +10,9 @@
 # Use `make clean` to remove Gramine-generated files and `make distclean` to
 # additionally remove the cloned Geth git repository.
 
+.ONESHELL:
+SHELL := /bin/bash
+
 ################################# CONSTANTS ###################################
 
 # directory with arch-specific libraries, used by Geth
@@ -25,10 +28,10 @@ GETH_REPO ?= https://github.com/flashbots/builder
 MBEDTLS_PATH = https://github.com/ARMmbed/mbedtls/archive/mbedtls-3.3.0.tar.gz
 
 GPP = g++ -std=c++17
-GORUN = env GO111MODULE=on go run
+GORUN = env GO111MODULE=on ego-go run
 SRCDIR = go-ethereum
 
-GOMODCACHE = $(shell go env GOMODCACHE)
+GOMODCACHE = $(shell ego-go env GOMODCACHE)
 PATCHED_GOLEVELDB = goleveldb
 
 ifeq ($(DEBUG),1)
@@ -107,21 +110,44 @@ geth.args:
 			--datadir.ancient=/data/ancient \
 		> $@
 endif
+ifeq ($(HOLESKY),1)
+geth.args:
+	gramine-argv-serializer \
+		./geth_init \
+			--holesky \
+			--http \
+			--http.api=engine,eth,web3,net,debug,flashbots \
+			--http.corsdomain=* \
+			--http.addr=0.0.0.0 \
+			--authrpc.jwtsecret=/etc/jwt.hex \
+			--authrpc.vhosts=* \
+			--authrpc.addr=0.0.0.0 \
+			--builder \
+			--builder.algotype=greedy \
+			--builder.beacon_endpoints=http://127.0.0.1:3500,http://prysm:3500 \
+			--builder.remote_relay_endpoint=https://boost-relay-holesky.flashbots.net \
+			--miner.extradata='Illuminate Dmocrtz Dstrib Prtct' \
+			--datadir.ancient=/data/ancient \
+		> $@
+endif
 
 ############################## GETH EXECUTABLE ###############################
 
 # Clone Geth and fetch dependencies
 $(SRCDIR)/Makefile:
 	git clone -b $(GETH_BRANCH) $(GETH_REPO) $(SRCDIR)
-	cd $(SRCDIR) && go mod download
-
+	cd $(SRCDIR) && ego-go mod download
 # patch Geth
-$(SRCDIR)/PATCHED: FLOCK_REVISION=$(shell git -C $(SRCDIR) merge-base --is-ancestor 09a9ccdbce HEAD && echo 1)
 $(SRCDIR)/PATCHED: $(SRCDIR)/Makefile
-	if [ 1 -eq $(FLOCK_REVISION) ]; then \
-		patch -d $(SRCDIR) -p1 < geth-patches/0001a-go-ethereum.patch ; \
-	else \
-		patch -d $(SRCDIR) -p1 < geth-patches/0001-go-ethereum.patch ; \
+	if patch --dry-run -d $(SRCDIR) -p1 < geth-patches/0001-go-ethereum.patch &> /dev/null; then
+	    patch -d $(SRCDIR) -p1 < geth-patches/0001-go-ethereum.patch
+	elif patch --dry-run -d $(SRCDIR) -p1 < geth-patches/0001a-go-ethereum.patch &> /dev/null; then
+	    patch -d $(SRCDIR) -p1 < geth-patches/0001a-go-ethereum.patch
+	elif patch --dry-run -d $(SRCDIR) -p1 < geth-patches/0001b-go-ethereum.patch &> /dev/null; then
+	    patch -d $(SRCDIR) -p1 < geth-patches/0001b-go-ethereum.patch
+	else
+	    echo "Error: Flock patch cannot be applied.";
+	    exit -1;
 	fi
 ifeq ($(TLS),1)
 	patch -d $(SRCDIR) -p1 < geth-patches/0003-go-ethereum-tls.patch
@@ -141,7 +167,7 @@ $(PATCHED_GOLEVELDB): $(SRCDIR)/PATCHED
 # Build Geth
 $(SRCDIR)/build/bin/geth: $(PATCHED_GOLEVELDB)
 	cd $(SRCDIR) && \
-		go build -ldflags "-extldflags '-Wl,-z,stack-size=0x800000,-fuse-ld=gold'" -tags urfave_cli_no_docs -trimpath -v -o $(PWD)/$(SRCDIR)/build/bin/geth ./cmd/geth
+		ego-go build -ldflags "-extldflags '-Wl,-z,stack-size=0x800000,-fuse-ld=gold'" -tags urfave_cli_no_docs -trimpath -v -o $(PWD)/$(SRCDIR)/build/bin/geth ./cmd/geth
 
 ################################## GETH INIT #################################
 

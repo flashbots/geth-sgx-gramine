@@ -1,0 +1,17 @@
+diff --git a/core/rawdb/freezer_resettable.go b/core/rawdb/freezer_resettable.go
+index 7a8548973..776399eba 100644
+--- a/core/rawdb/freezer_resettable.go
++++ b/core/rawdb/freezer_resettable.go
+@@ -77,11 +77,7 @@ func (f *ResettableFreezer) Reset() error {
+ 	if err := f.freezer.Close(); err != nil {
+ 		return err
+ 	}
+-	tmp := tmpName(f.datadir)
+-	if err := os.Rename(f.datadir, tmp); err != nil {
+-		return err
+-	}
+-	if err := os.RemoveAll(tmp); err != nil {
++	if err := os.RemoveAll(f.datadir); err != nil {
+ 		return err
+ 	}
+ 	freezer, err := f.opener()
