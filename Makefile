@@ -248,6 +248,42 @@ ifeq ($(SGX),1)
 	@grep -q "Success SGX quote" TEST_STDOUT
 endif
 
+
+############################## RUNNING BENCHMARKS ##################################
+
+BENCH_ENCLAVE_SIZE ?= 32G
+
+%.test:
+	gramine-argv-serializer \
+		./test_outs/$@.test \
+		-test.v \
+		-test.bench=. \
+	> $@.args
+	gramine-manifest \
+		-Dlog_level=$(GRAMINE_LOG_LEVEL) \
+		-Darch_libdir=$(ARCH_LIBDIR) \
+		-Dentrypoint="./test_outs/$@" \
+		-Dra_type=$(RA_TYPE) \
+		-Dtest_name="$@" \
+		-Disvprodid=$(ISVPRODID) \
+		-Disvsvn=$(ISVSVN) \
+		-Denclave_size=$(BENCH_ENCLAVE_SIZE) \
+		test.manifest.template >$@.manifest
+	gramine-sgx-sign \
+		--manifest $@.manifest \
+		--output $@.manifest.sgx
+
+.PHONY: test_outs
+test_outs: $(PATCHED_GOLEVELDB)
+	cd $(SRCDIR) && \
+	ego-go test -ldflags "-extldflags '-Wl,-z,stack-size=0x800000,-fuse-ld=gold'" -c `grep -ElrniI "benchmark" | grep "test.go" | xargs dirname | sort -u | xargs printf -- './%s '` -o ../test_outs
+
+# Note: will take a *really* long time
+run_all_geth_benchmarks: test_outs
+	find ./test_outs -type f -exec basename {} \; | xargs make
+	find ./test_outs -type f -exec bash -c 'basename "$$0" | xargs gramine-sgx' {} \;
+
+
 ################################## CLEANUP ####################################
 
 .PHONY: clean
